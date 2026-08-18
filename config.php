@@ -4,9 +4,9 @@ if (count(get_included_files()) == 1) {
 }
 
 // Resend API Key
-define('RESEND_API_KEY', 're_FwVkkF2r_AE9uPgcnFTmxzmUoFQ8atTTj');
+define('RESEND_API_KEY', 're_DwHXmU4t_3MLNNhrXJ8GWBaGifogRfzKU');
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
-define('DEFAULT_SENDER_EMAIL', 'onboarding@resend.dev');
+define('DEFAULT_SENDER_EMAIL', 'onboarding@topsunglobal.net');
 
 /**
  * Direct Email Dispatcher via HTTPS / Port 443
