@@ -4,8 +4,10 @@ if (count(get_included_files()) == 1) {
     exit("Direct access not permitted.");
 }
 
-// Retrieve API Key from Render Environment Variables
-define('BREVO_API_KEY', getenv('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'));
+// Retrieve API Key from Render Environment Variables (checking multiple fallbacks)
+$apiKey = $_ENV['BREVO_API_KEY'] ?? $_SERVER['BREVO_API_KEY'] ?? getenv('BREVO_API_KEY') ?: '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';
+
+define('BREVO_API_KEY', $apiKey);
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
 define('DEFAULT_SENDER_EMAIL', 'no-reply@topsunglobal.com');
 
