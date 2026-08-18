@@ -3,5 +3,5 @@ services:
     name: iconroom-mailer
     runtime: docker
     envVars:
-      - key: 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
+      - key: BREVO_API_KEY
         sync: false
