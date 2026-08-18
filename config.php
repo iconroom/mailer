@@ -8,7 +8,7 @@ $apiKey = $_ENV['RESEND_API_KEY'] ?? $_SERVER['RESEND_API_KEY'] ?? getenv('RESEN
 
 define('RESEND_API_KEY', $apiKey);
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
-define('DEFAULT_SENDER_EMAIL', 'onboarding@resend.dev');
+define('DEFAULT_SENDER_EMAIL', 'onboarding@topsunglobal.net');
 
 /**
  * Direct Email Dispatcher via HTTPS / Port 443
