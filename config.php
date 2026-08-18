@@ -1,30 +1,71 @@
 <?php
-// Prevent direct access to this configuration file
+// Prevent direct access to config.php
 if (count(get_included_files()) == 1) {
     exit("Direct access not permitted.");
 }
 
-// Global Application Constants
-define('TIMEOUT_SECONDS', 10);
-define('DEFAULT_SENDER_NAME', 'BuildMailer PHP');
+// Retrieve API Key from Render Environment Variables
+define('BREVO_API_KEY', getenv('BREVO_API_KEY'));
+define('DEFAULT_SENDER_NAME', 'Iconroom Mailer');
+define('DEFAULT_SENDER_EMAIL', 'no-reply@yourdomain.com');
 
 /**
- * Sanitizes input values to prevent Email Header Injection attacks (\r or \n).
+ * Sends transactional email via Brevo HTTP v3 API
  */
-function sanitize_header_value($value) {
-    return preg_replace('/[\r\n]/', '', trim($value));
-}
+function send_brevo_email($to, $replyTo, $subject, $message) {
+    $apiKey = BREVO_API_KEY;
 
-/**
- * Checks if the target domain has valid MX records and returns the primary server host.
- */
-function get_primary_mx_host($email) {
-    $domain = substr(strrchr($email, "@"), 1);
-    $mxhosts = [];
-    
-    if ($domain && getmxrr($domain, $mxhosts) && !empty($mxhosts)) {
-        return $mxhosts[0]; // Return top priority MX server
+    if (!$apiKey) {
+        return ["success" => false, "error" => "BREVO_API_KEY is missing in Render Environment Variables."];
     }
-    return false;
+
+    $payload = [
+        "sender" => [
+            "name" => DEFAULT_SENDER_NAME,
+            "email" => DEFAULT_SENDER_EMAIL
+        ],
+        "to" => [
+            ["email" => $to]
+        ],
+        "replyTo" => [
+            "email" => $replyTo
+        ],
+        "subject" => $subject,
+        "htmlContent" => "
+            <html>
+            <head><meta charset='utf-8'></head>
+            <body style='font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;'>
+              <div style='background: #ffffff; padding: 20px; border-radius: 6px; max-width: 500px;'>
+                <h2 style='color: #333;'>$subject</h2>
+                <p style='color: #555; line-height: 1.5;'>$message</p>
+                <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;' />
+                <p style='font-size: 12px; color: #888;'>Reply-To configured address: <strong>$replyTo</strong></p>
+              </div>
+            </body>
+            </html>
+        "
+    ];
+
+    $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_HTTPHEADER => [
+            'accept: application/json',
+            'api-key: ' . $apiKey,
+            'content-type: application/json'
+        ]
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return ["success" => true];
+    }
+
+    return ["success" => false, "error" => "Brevo API Error (HTTP $httpCode): " . $response];
 }
 ?>
