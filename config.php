@@ -4,7 +4,7 @@ if (count(get_included_files()) == 1) {
 }
 
 // Resend API Key
-define('RESEND_API_KEY', 're_DwHXmU4t_3MLNNhrXJ8GWBaGifogRfzKU');
+define('RESEND_API_KEY', 're_B5ZaySJw_pzopgYNZxamDdaxSp23dTgHZ');
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
 define('DEFAULT_SENDER_EMAIL', 'onboarding@topsunglobal.net');
 
