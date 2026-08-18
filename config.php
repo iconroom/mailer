@@ -5,9 +5,9 @@ if (count(get_included_files()) == 1) {
 }
 
 // Retrieve API Key from Render Environment Variables
-define('BREVO_API_KEY', getenv('BREVO_API_KEY'));
-define('DEFAULT_SENDER_NAME', 'Iconroom Mailer');
-define('DEFAULT_SENDER_EMAIL', 'no-reply@yourdomain.com');
+define('BREVO_API_KEY', getenv('xsmtpsib-f8bd5b7f232a2d9a15ef7731515ca6ac647277988081d0e5bb7903481d4d070c-PHXGHWwRPFP3O96J'));
+define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
+define('DEFAULT_SENDER_EMAIL', 'no-reply@topsunglobal.com');
 
 /**
  * Sends transactional email via Brevo HTTP v3 API
