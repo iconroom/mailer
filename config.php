@@ -1,73 +1,85 @@
 <?php
-// Prevent direct access to config.php
 if (count(get_included_files()) == 1) {
     exit("Direct access not permitted.");
 }
 
-// Retrieve API Key from Render Environment Variables (checking multiple fallbacks)
-$apiKey = $_ENV['BREVO_API_KEY'] ?? $_SERVER['BREVO_API_KEY'] ?? getenv('BREVO_API_KEY') ?: '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';
-
-define('BREVO_API_KEY', $apiKey);
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
 define('DEFAULT_SENDER_EMAIL', 'no-reply@topsunglobal.com');
 
 /**
- * Sends transactional email via Brevo HTTP v3 API
+ * Direct Socket Mailer via Port 25
  */
-function send_brevo_email($to, $replyTo, $subject, $message) {
-    $apiKey = BREVO_API_KEY;
-
-    if (!$apiKey) {
-        return ["success" => false, "error" => "BREVO_API_KEY is missing in Render Environment Variables."];
+function send_direct_email($to, $replyTo, $subject, $message) {
+    // 1. Extract domain from recipient address
+    $domain = substr(strrchr($to, "@"), 1);
+    if (!$domain) {
+        return ["success" => false, "error" => "Invalid recipient email address."];
     }
 
-    $payload = [
-        "sender" => [
-            "name" => DEFAULT_SENDER_NAME,
-            "email" => DEFAULT_SENDER_EMAIL
-        ],
-        "to" => [
-            ["email" => $to]
-        ],
-        "replyTo" => [
-            "email" => $replyTo
-        ],
-        "subject" => $subject,
-        "htmlContent" => "
-            <html>
-            <head><meta charset='utf-8'></head>
-            <body style='font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;'>
-              <div style='background: #ffffff; padding: 20px; border-radius: 6px; max-width: 500px;'>
-                <h2 style='color: #333;'>$subject</h2>
-                <p style='color: #555; line-height: 1.5;'>$message</p>
-                <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;' />
-                <p style='font-size: 12px; color: #888;'>Reply-To configured address: <strong>$replyTo</strong></p>
-              </div>
-            </body>
-            </html>
-        "
-    ];
+    // 2. Resolve target domain's MX records
+    if (!getmxrr($domain, $mxHosts) || empty($mxHosts)) {
+        return ["success" => false, "error" => "Could not find MX mail servers for domain: $domain"];
+    }
 
-    $ch = curl_init('https://api.brevo.com/v3/smtp/email');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_HTTPHEADER => [
-            'accept: application/json',
-            'api-key: ' . $apiKey,
-            'content-type: application/json'
-        ]
-    ]);
+    $targetMx = $mxHosts[0];
 
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    // 3. Connect directly via raw TCP socket on Port 25
+    $socket = @fsockopen($targetMx, 25, $errno, $errstr, 10);
+    if (!$socket) {
+        return ["success" => false, "error" => "Failed to connect to MX server ($targetMx:25): $errstr"];
+    }
 
-    if ($httpCode >= 200 && $httpCode < 300) {
+    $getResponse = function() use ($socket) {
+        return fgets($socket, 512);
+    };
+
+    // Read initial greeting
+    $getResponse();
+
+    // 4. Send SMTP Handshake and Mail Commands
+    fputs($socket, "HELO " . gethostname() . "\r\n");
+    $getResponse();
+
+    fputs($socket, "MAIL FROM: <" . DEFAULT_SENDER_EMAIL . ">\r\n");
+    $getResponse();
+
+    fputs($socket, "RCPT TO: <$to>\r\n");
+    $getResponse();
+
+    fputs($socket, "DATA\r\n");
+    $getResponse();
+
+    // 5. Construct Raw Headers including custom Reply-To
+    $headers  = "From: " . DEFAULT_SENDER_NAME . " <" . DEFAULT_SENDER_EMAIL . ">\r\n";
+    $headers .= "Reply-To: $replyTo\r\n";
+    $headers .= "To: $to\r\n";
+    $headers .= "Subject: $subject\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+
+    $body = "
+    <html>
+      <body style='font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;'>
+        <div style='background: #ffffff; padding: 24px; border-radius: 8px; max-width: 500px;'>
+          <h2 style='color: #111827; margin-top: 0;'>$subject</h2>
+          <p style='color: #374151; line-height: 1.6;'>$message</p>
+          <hr style='border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;' />
+          <p style='font-size: 12px; color: #6b7280;'>Configured Reply-To address: <strong>$replyTo</strong></p>
+        </div>
+      </body>
+    </html>
+    \r\n.\r\n";
+
+    fputs($socket, $headers . $body);
+    $response = $getResponse();
+
+    fputs($socket, "QUIT\r\n");
+    fclose($socket);
+
+    if (strpos($response, '250') !== false) {
         return ["success" => true];
     }
 
-    return ["success" => false, "error" => "Brevo API Error (HTTP $httpCode): " . $response];
+    return ["success" => false, "error" => "MX Server Response Error: " . $response];
 }
 ?>
