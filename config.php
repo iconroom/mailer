@@ -5,7 +5,7 @@ if (count(get_included_files()) == 1) {
 }
 
 // Retrieve API Key from Render Environment Variables
-define('BREVO_API_KEY', getenv('xsmtpsib-f8bd5b7f232a2d9a15ef7731515ca6ac647277988081d0e5bb7903481d4d070c-PHXGHWwRPFP3O96J'));
+define('BREVO_API_KEY', getenv('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'));
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
 define('DEFAULT_SENDER_EMAIL', 'no-reply@topsunglobal.com');
 
