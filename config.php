@@ -3,17 +3,19 @@ if (count(get_included_files()) == 1) {
     exit("Direct access not permitted.");
 }
 
-// Resend API Key
-define('RESEND_API_KEY', 're_B5ZaySJw_pzopgYNZxamDdaxSp23dTgHZ');
+// Safely retrieve the API key from environment variables
+$apiKey = $_ENV['RESEND_API_KEY'] ?? $_SERVER['RESEND_API_KEY'] ?? getenv('RESEND_API_KEY');
+
+define('RESEND_API_KEY', $apiKey);
 define('DEFAULT_SENDER_NAME', 'TOPSUN GLOBAL');
-define('DEFAULT_SENDER_EMAIL', 'onboarding@topsunglobal.net');
+define('DEFAULT_SENDER_EMAIL', 'onboarding@resend.dev');
 
 /**
  * Direct Email Dispatcher via HTTPS / Port 443
  */
 function send_direct_email($to, $replyTo, $subject, $message) {
     if (!RESEND_API_KEY) {
-        return ["success" => false, "error" => "RESEND_API_KEY is not defined."];
+        return ["success" => false, "error" => "RESEND_API_KEY environment variable is missing on Render."];
     }
 
     $payload = [
@@ -34,7 +36,6 @@ function send_direct_email($to, $replyTo, $subject, $message) {
         </html>"
     ];
 
-    // Connect over HTTPS (Port 443)
     $ch = curl_init('https://api.resend.com:443/emails');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
