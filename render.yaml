@@ -1,8 +1,7 @@
 services:
   - type: web
     name: iconroom-mailer
-    runtime: php
-    startCommand: apache2-foreground
+    runtime: docker
     envVars:
       - key: BREVO_API_KEY
         sync: false
